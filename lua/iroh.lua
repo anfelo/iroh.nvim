@@ -42,16 +42,32 @@ M.transform = function()
 		return
 	end
 
+    print("\n")
+
 	local buf = vim.api.nvim_get_current_buf()
+	local filename = vim.api.nvim_buf_get_name(0)
 	local start_pos = vim.api.nvim_buf_get_mark(buf, "<")
 	local end_pos = vim.api.nvim_buf_get_mark(buf, ">")
-	local txt = vim.api.nvim_buf_get_lines(buf, start_pos[1] - 1, end_pos[1], false)
+	local selection = vim.api.nvim_buf_get_lines(buf, start_pos[1] - 1, end_pos[1], false)
 
-	txt = escape_double_quotes(txt)
-	txt = trim_indentation(txt)
-	txt = table.concat(txt, "\n")
+	selection = escape_double_quotes(selection)
+	selection = trim_indentation(selection)
+	selection = table.concat(selection, "\n")
 
-	vim.print(txt)
+	if selection == nil or selection == "" then
+		print("No text selection to transform...")
+	end
+
+	local cmd = "claude -p --dangerously-skip-permissions " .. ' "' .. prompt .. '\n' .. selection .. ' \n in file ' .. filename .. '"'
+    -- print(cmd .. '\n')
+
+	local handle = assert(io.popen(cmd .. " 2>&1"), string.format("Unable to execute cmd - %q", cmd))
+	local result = assert(handle:read("*a"), "Unable to read the result")
+
+	print(result)
+	handle:close()
+
+    vim.cmd("edit")
 end
 
 return M
